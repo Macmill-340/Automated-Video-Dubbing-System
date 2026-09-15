@@ -28,4 +28,5 @@ Record your screen with the repo open; talk through this. Aim for ~120 seconds.
 
 ## 1:50–2:00 — Close
 - 35 real tests, no mocks on the stages; `uv run pytest`.
-- Honest limit: single matched voices, overlapping speech is serialized.
+- Honest limits: pitch clustering found 6 "speakers" on CS50 (applause counts);
+  overlapping speech is serialized. Depth lives in `ARCHITECTURE.md`.

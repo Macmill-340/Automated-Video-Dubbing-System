@@ -29,7 +29,7 @@ Why these tools (researched, not just the assignment hints):
 | No IndicTrans2 | Deliberate | Would add torch + transformers + large MT weights for a gain this pipeline doesn't need; Whisper's built-in X→English covers the dub-to-English requirement. Revisit if translation quality becomes the bottleneck. |
 | Voice | `edge-tts` (default `en-US-AriaNeural`) | Free, natural neural voices, zero local weights/GPU. Needs internet. |
 | Voice match | `voice.py` (numpy F0 + RMS, no ML) | Gender from median pitch (165 Hz split), speakers split on pitch jumps, then the closest Edge voice + rate/pitch/volume nudge per segment. Same *kind* of voice, not a clone — cloning needs torch. |
-| Timing | `atempo` + pure-Python `wave` assembly | Clips that fit sit at the window start; long clips speed up (≤1.35×); leftover overflow truncates at the next segment so one voice never overlaps itself. No numpy, no giant filter graphs. |
+| Timing | `atempo` + pure-Python `wave` assembly | Clips that fit sit at the window start; long clips speed up (≤1.35×); leftover overflow truncates at the next segment so one voice never overlaps itself. No giant filter graphs. |
 | Remix | system `ffmpeg` | `-c:v copy` (no video re-encode, fast on 2-hour inputs) + AAC audio. |
 
 ## Setup
@@ -75,7 +75,8 @@ tests/             real integrations (19 s YouTube video, tiny whisper model,
 - ~2 hr: CS50 2024 Lecture 0, `work/eval_2h/` (`3LPJfIKxwWc`, male lecturer)
 
 Each folder keeps `source.mp4`, `dubbed.mp4`, and `timing.json`.
-See `WALKTHROUGH.md` for the 2-minute video script.
+See `WALKTHROUGH.md` for the 2-minute video script and `ARCHITECTURE.md`
+for the full what-and-why.
 
 ## Tests
 
@@ -84,7 +85,7 @@ uv run pytest                 # full suite, ~35 s, needs internet
 uv run pytest -m "not e2e"    # offline subset (ffmpeg + logic only)
 ```
 
-23 tests, none faked. The `e2e`-marked tests run the real thing once per
+35 tests, none faked. The `e2e`-marked tests run the real thing once per
 session against "Me at the zoo" (19 s, stable since 2005): real yt-dlp
 download, real faster-whisper `tiny` transcription, real edge-tts voices,
 and a full `run_pipeline` dub asserting the output keeps the source video
@@ -94,8 +95,8 @@ stage change.
 
 ## Limits & next steps
 
-- Single narrator voice; overlapping speech is serialized by window order.
-- Stretch goals (not attempted): speaker diarization (`pyannote.audio`) and
-  voice cloning (Coqui XTTS) — both heavy; do them only if dub quality demands it.
-- Possible upgrades: `--task transcribe` + dedicated MT flag, word-level
-  timestamps for tighter fits, per-speaker `--voice` mapping.
+- Pitch clustering is not diarization; applause can mint extra speakers.
+- Whisper's built-in translation is good, not literary MT (see
+  `ARCHITECTURE.md` for the full what-and-why).
+- Possible upgrades: dedicated MT flag, word-level timestamps for tighter
+  fits.

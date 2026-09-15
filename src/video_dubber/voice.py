@@ -36,13 +36,14 @@ def read_slice(wav_path: str | Path, start: float, end: float) -> tuple[np.ndarr
     """Read WAV seconds [start, end) as float samples in [-1, 1]; return samples + rate."""
     with wave.open(str(wav_path), "rb") as wav:
         rate = wav.getframerate()
+        channels = wav.getnchannels()
         first = int(max(0.0, start) * rate)
         count = max(0, int(end * rate) - first)
         wav.setpos(min(first, wav.getnframes()))
         raw = wav.readframes(count)
     samples = np.frombuffer(raw, dtype=np.int16).astype(np.float64) / 32768.0
-    if wav.getnchannels() > 1:
-        samples = samples.reshape(-1, wav.getnchannels()).mean(axis=1)
+    if channels > 1:
+        samples = samples.reshape(-1, channels).mean(axis=1)
     return samples, rate
 
 
