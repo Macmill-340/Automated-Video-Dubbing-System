@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+import json
+import shutil
+import subprocess
+
 import pytest
 
 from video_dubber import cli as cli_mod
 from video_dubber.cli import main, run_pipeline
-from conftest import ZOO_URL, media_streams
+from video_dubber.models import Segment
+from conftest import ZOO_URL, make_wav, media_streams
+
+ffmpeg = shutil.which("ffmpeg")
+needs_ffmpeg = pytest.mark.skipif(ffmpeg is None, reason="needs ffmpeg")
 
 
 @pytest.mark.e2e
@@ -42,3 +50,37 @@ def test_main_failure_returns_1(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(cli_mod, "run_pipeline", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
     assert main(["https://youtu.be/fake", "--workdir", str(tmp_path)]) == 1
     assert "boom" in capsys.readouterr().err
+
+
+@needs_ffmpeg
+def test_resume_skips_finished_stages(tmp_path):
+    """A workdir with source + segments + one TTS clip finishes with no network."""
+    work = tmp_path / "work"
+    work.mkdir()
+    subprocess.run(
+        [ffmpeg, "-y", "-f", "lavfi", "-i", "testsrc=duration=2:size=128x128:rate=10",
+         "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(work / "source.mp4")],
+        check=True, capture_output=True,
+    )
+    make_wav(work / "source.wav", 2.0, rate=16000)
+    (work / "meta.json").write_text(json.dumps({"title": "Resume Test", "url": "x"}))
+    seg = Segment(0.0, 2.0, "Hello world test", speaker="SPEAKER_00",
+                  voice="en-US-AriaNeural", rate="+0%", pitch="+0Hz", volume="+0%")
+    (work / "segments.json").write_text(json.dumps([seg.__dict__]))
+    tts_dir = work / "tts"
+    tts_dir.mkdir()
+    subprocess.run(
+        [ffmpeg, "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+         "-c:a", "libmp3lame", str(tts_dir / "seg_0000.mp3")],
+        check=True, capture_output=True,
+    )
+
+    result = run_pipeline("https://youtu.be/unused", work, tmp_path / "dubbed.mp4", resume=True)
+
+    assert result.final_video.is_file()
+    assert result.segments == 1
+    timing = json.loads((work / "timing.json").read_text())
+    assert timing["stages"]["download"] == 0.0
+    assert timing["stages"]["transcribe"] == 0.0
+    assert timing["total_seconds"] > 0

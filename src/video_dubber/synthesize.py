@@ -20,8 +20,8 @@ ProgressFn = Callable[[str], None]
 DEFAULT_VOICE = "en-US-AriaNeural"
 
 
-async def _synthesize_one(text: str, voice: str, rate: str, out_path: Path) -> None:
-    await edge_tts.Communicate(text, voice, rate=rate).save(str(out_path))
+async def _synthesize_one(text: str, voice: str, rate: str, volume: str, pitch: str, out_path: Path) -> None:
+    await edge_tts.Communicate(text, voice, rate=rate, volume=volume, pitch=pitch).save(str(out_path))
 
 
 async def _synthesize_all(
@@ -30,6 +30,7 @@ async def _synthesize_all(
     rate: str,
     concurrency: int,
     notify: ProgressFn,
+    skip_existing: bool,
 ) -> list[Path | None]:
     semaphore = asyncio.Semaphore(max(1, concurrency))
     results: list[Path | None] = [None] * len(jobs)
@@ -38,8 +39,19 @@ async def _synthesize_all(
         async with semaphore:
             if not segment.text.strip():
                 return
+            if skip_existing and path.is_file() and path.stat().st_size > 0:
+                notify(f"keeping {index + 1}/{len(jobs)} (already synthesized)")
+                results[index] = path
+                return
             notify(f"synthesizing {index + 1}/{len(jobs)}")
-            await _synthesize_one(segment.text, voice, rate, path)
+            await _synthesize_one(
+                segment.text,
+                segment.voice or voice,
+                segment.rate or rate,
+                segment.volume or "+0%",
+                segment.pitch or "+0Hz",
+                path,
+            )
             results[index] = path
 
     await asyncio.gather(*(worker(i, seg, path) for i, (seg, path) in enumerate(jobs)))
@@ -53,6 +65,7 @@ def synthesize(
     rate: str = "+0%",
     concurrency: int = 4,
     on_progress: ProgressFn | None = None,
+    skip_existing: bool = False,
 ) -> list[Path | None]:
     """Synthesize each segment to MP3; empty texts yield None (skipped downstream)."""
     notify = on_progress or (lambda _msg: None)
@@ -61,7 +74,7 @@ def synthesize(
 
     jobs = [(seg, out_dir / f"seg_{i:04d}.mp3") for i, seg in enumerate(segments)]
     notify(f"synthesizing {len(jobs)} clips with voice '{voice}'")
-    clips = asyncio.run(_synthesize_all(jobs, voice, rate, concurrency, notify))
+    clips = asyncio.run(_synthesize_all(jobs, voice, rate, concurrency, notify, skip_existing))
     done = sum(1 for c in clips if c is not None)
     notify(f"synthesized {done}/{len(jobs)} clips")
     return clips

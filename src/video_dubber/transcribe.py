@@ -15,7 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from faster_whisper import WhisperModel
+from faster_whisper import BatchedInferencePipeline, WhisperModel
 
 from .models import Segment
 
@@ -28,6 +28,7 @@ def transcribe(
     device: str = "cpu",
     compute_type: str = "int8",
     vad_filter: bool = True,
+    batched: bool = False,
     on_progress: ProgressFn | None = None,
 ) -> tuple[list[Segment], str]:
     """Transcribe *audio_path* and translate to English; return segments + language code."""
@@ -37,12 +38,16 @@ def transcribe(
     model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
     notify("transcribing + translating to English")
-    raw_segments, info = model.transcribe(
-        str(audio_path),
-        task="translate",
-        vad_filter=vad_filter,
-        vad_parameters={"min_silence_duration_ms": 500},
-    )
+    options = {
+        "task": "translate",
+        "vad_filter": vad_filter,
+        "vad_parameters": {"min_silence_duration_ms": 500},
+    }
+    if batched:  # faster on long audio: same model, segments decoded in parallel
+        pipeline = BatchedInferencePipeline(model=model)
+        raw_segments, info = pipeline.transcribe(str(audio_path), batch_size=8, **options)
+    else:
+        raw_segments, info = model.transcribe(str(audio_path), **options)
     segments = [
         Segment(start=float(s.start), end=float(s.end), text=s.text.strip())
         for s in raw_segments

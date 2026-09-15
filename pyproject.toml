@@ -5,6 +5,7 @@ requires-python = ">=3.13"
 dependencies = [
     "edge-tts>=7.2.8",
     "faster-whisper>=1.2.1",
+    "numpy>=2.5.3",
     "yt-dlp>=2026.8.19",
 ]
 

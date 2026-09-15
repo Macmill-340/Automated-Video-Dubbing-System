@@ -32,18 +32,29 @@ def _require_ffmpeg() -> str:
 
 
 def _progress_hook(notify: ProgressFn):
+    last_pct = -1
+
     def hook(status: dict) -> None:
+        nonlocal last_pct
         if status.get("status") != "downloading":
             return
         total = status.get("total_bytes") or status.get("total_bytes_estimate")
         downloaded = status.get("downloaded_bytes") or 0
         if total:
-            notify(f"download {downloaded / total:.0%} ({downloaded}/{total} bytes)")
+            pct = int(100 * downloaded / total)
+            if pct != last_pct:  # one line per percent: quiet on fragment-heavy downloads
+                last_pct = pct
+                notify(f"download {pct}% ({downloaded}/{total} bytes)")
 
     return hook
 
 
-def download(url: str, workdir: str | Path, on_progress: ProgressFn | None = None) -> DownloadResult:
+def download(
+    url: str,
+    workdir: str | Path,
+    on_progress: ProgressFn | None = None,
+    format: str = "bv*+ba/b",
+) -> DownloadResult:
     """Download *url* into *workdir*; return video path, extracted WAV path, title."""
     notify = on_progress or (lambda _msg: None)
     workdir = Path(workdir)
@@ -58,7 +69,7 @@ def download(url: str, workdir: str | Path, on_progress: ProgressFn | None = Non
     notify("downloading video")
     with YoutubeDL(
         {
-            "format": "bv*+ba/b",
+            "format": format,
             "merge_output_format": "mp4",
             "outtmpl": str(workdir / "source.%(ext)s"),
             "quiet": True,

@@ -133,6 +133,7 @@ source = { editable = "." }
 dependencies = [
     { name = "edge-tts" },
     { name = "faster-whisper" },
+    { name = "numpy" },
     { name = "yt-dlp" },
 ]
 
@@ -145,6 +146,7 @@ dev = [
 requires-dist = [
     { name = "edge-tts", specifier = ">=7.2.8" },
     { name = "faster-whisper", specifier = ">=1.2.1" },
+    { name = "numpy", specifier = ">=2.5.3" },
     { name = "yt-dlp", specifier = ">=2026.8.19" },
 ]
 

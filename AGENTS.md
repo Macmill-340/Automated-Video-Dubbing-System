@@ -4,12 +4,12 @@ Pipeline CLI (`dub-video`): YouTube → English-dubbed MP4. Spec is `automated-v
 
 ## Stack
 - Python `>=3.13` via `uv`; run everything with `uv run` (venv already synced).
-- Deps in `pyproject.toml`: `yt-dlp`, `faster-whisper` (CTranslate2, **no torch**), `edge-tts`. Do NOT add transformers/IndicTrans2 — Whisper `task="translate"` does X→English in one pass (see README).
+- Deps in `pyproject.toml`: `yt-dlp`, `faster-whisper` (CTranslate2, **no torch**), `edge-tts`, `numpy` (F0/RMS in `voice.py`). Do NOT add transformers/IndicTrans2/torch TTS — Whisper `task="translate"` does X→English in one pass (see README).
 - `ffmpeg` + `ffprobe` are system binaries, not pip packages. Fail loud if missing.
-- Layout: `src/video_dubber/` (`cli download transcribe synthesize audio remix models`), `tests/` (one file per stage).
+- Layout: `src/video_dubber/` (`cli download transcribe synthesize audio remix models voice`), `tests/` (one file per stage).
 
 ## Commands
-- `uv run dub-video "<url>"` — end-to-end; `uv run pytest` — full suite (23 tests, ~35 s, needs internet; run after every stage change).
+- `uv run dub-video "<url>"` — end-to-end; `uv run pytest` — full suite (35 tests, ~40 s, needs internet; run after every stage change).
 - `uv run pytest -m "not e2e"` for the offline subset (ffmpeg + logic only).
 - `uv sync` after touching deps. `uv run pytest tests/test_<stage>.py` for a focused check.
 

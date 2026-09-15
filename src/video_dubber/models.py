@@ -17,6 +17,11 @@ class Segment:
     start: float  # window start in seconds
     end: float  # window end in seconds
     text: str  # English text to speak
+    speaker: str = ""  # e.g. "SPEAKER_00" (empty until clustered)
+    voice: str = ""  # edge-tts voice for this segment (empty = CLI default)
+    rate: str = ""  # edge-tts rate like "+10%" (empty = CLI default)
+    pitch: str = ""  # edge-tts pitch like "-5Hz" (empty = CLI default)
+    volume: str = ""  # edge-tts volume like "+8%" (empty = CLI default)
 
     @property
     def duration(self) -> float:
