@@ -2,4 +2,28 @@
 name = "automated-video-dubbing-system"
 version = "0.1.0"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "edge-tts>=7.2.8",
+    "faster-whisper>=1.2.1",
+    "yt-dlp>=2026.8.19",
+]
+
+[project.scripts]
+dub-video = "video_dubber.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = ["e2e: real network/model tests (YouTube, edge-tts, whisper weights)"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

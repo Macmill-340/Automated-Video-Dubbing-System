@@ -1,19 +1,20 @@
 # AGENTS.md
 
-Greenfield Python project — no source, tests, lint, or CI yet. Spec is `automated-video-dubbing-assignment.md` (source of truth for requirements).
+Pipeline CLI (`dub-video`): YouTube → English-dubbed MP4. Spec is `automated-video-dubbing-assignment.md`.
 
 ## Stack
-- Python `>=3.13` only (`pyproject.toml`). Env manager is `uv`; `.venv/` already exists (CPython 3.13.13).
-- `pyproject.toml` has zero `dependencies` — add each pipeline dep there when you introduce it.
-- `ffmpeg` is a system binary, not a pip package. Verify with `ffmpeg -version` before touching remix code; fail loud if missing.
+- Python `>=3.13` via `uv`; run everything with `uv run` (venv already synced).
+- Deps in `pyproject.toml`: `yt-dlp`, `faster-whisper` (CTranslate2, **no torch**), `edge-tts`. Do NOT add transformers/IndicTrans2 — Whisper `task="translate"` does X→English in one pass (see README).
+- `ffmpeg` + `ffprobe` are system binaries, not pip packages. Fail loud if missing.
+- Layout: `src/video_dubber/` (`cli download transcribe synthesize audio remix models`), `tests/` (one file per stage).
 
-## Target pipeline (per assignment spec)
-`yt-dlp` download → Whisper transcribe → translate (e.g. IndicTrans2 for Indian languages) → `edge-tts` synthesize → `ffmpeg` mux new audio without re-encoding video.
-- CLI: accept YouTube URL as argv or prompt; print progress to terminal; save dubbed video to disk.
-- Stretch only (diarization via `pyannote.audio`, cloning via Coqui XTTS): attempt after core pipeline works.
-- Judged on dub accuracy (translation, natural voice, timing) + code clarity.
+## Commands
+- `uv run dub-video "<url>"` — end-to-end; `uv run pytest` — full suite (23 tests, ~35 s, needs internet; run after every stage change).
+- `uv run pytest -m "not e2e"` for the offline subset (ffmpeg + logic only).
+- `uv sync` after touching deps. `uv run pytest tests/test_<stage>.py` for a focused check.
 
 ## Gotchas
 - Windows + PowerShell 5.1 here: quote paths with spaces, use `; if ($?) { ... }` for dependent commands, never `&&`/`cd` — use `workdir` param.
-- Long media runs (30-min and 2-hr evaluation videos): keep intermediates on disk, stream/copy video (`-c:v copy`) instead of re-encoding, and log timing per stage.
-- No test/lint config exists — do not invent `pytest`/`ruff` commands; verify with a short real video run instead.
+- Long media runs (30-min and 2-hr evaluation videos): intermediates stay in `work/dub_<ts>/` (gitignored), video stream copied (`-c:v copy`), timing logged per stage.
+- Timing policy: clip fits → window start; too long → `atempo` speedup (cap 1.35×); overflow → truncate at next segment start, never overlap.
+- Tests are real (no stage mocks): `e2e` tests share one session download of the 19 s "Me at the zoo" video + one `tiny`-model transcript; source video codec varies (AV1) so e2e asserts copy by comparing to source, not `h264`.
