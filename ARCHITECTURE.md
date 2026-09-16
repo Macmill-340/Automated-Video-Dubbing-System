@@ -90,7 +90,7 @@ pasted in sample-accurately — plain `wave`, no giant ffmpeg filter graph.
 ## Remix
 
 `ffmpeg -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -shortest`: the video codec
-stays whatever YouTube served (AV1 on the zoo clip, VP9 on the lectures),
+stays whatever YouTube served (AV1 on the zoo clip, h264 on the 720p evals),
 audio becomes AAC. Copying instead of re-encoding is why a 2-hour mux takes
 minutes, and why the picture is bit-identical to the source.
 
@@ -106,14 +106,14 @@ Measured on this machine (CPU, `small` model, batched):
 | Video | Dub time | Segments | Speakers |
 |---|---|---|---|
 | CEC Hindi Diwas lecture (30 min, Hindi) | ~8 min | 68 | 2 |
-| NPTEL workshop 2020 (1 h 56, Hindi) | ~30 min over 2 runs | 265 | 6 |
+| NPTEL Regional Language Workshop (1 h 46, Hindi) | ~24 min, 1 run | 241 | 1 |
 
 Artifacts live in `work/eval_30m/` and `work/eval_2h/`: `source.mp4`,
 `dubbed.mp4`, `timing.json`.
 
 ## Tests
 
-35 tests, none faked. The `e2e`-marked ones share one session download of the
+38 tests, none faked. The `e2e`-marked ones share one session download of the
 19-second "Me at the zoo" video plus one `tiny`-model transcript: real yt-dlp,
 real transcription, real edge-tts voices, and a full `run_pipeline` dub that
 asserts the output video codec matches the source (copy, not re-encode).
@@ -122,7 +122,7 @@ Offline subset: `uv run pytest -m "not e2e"`. The long videos are not in CI.
 ## Honest limits
 
 - Pitch clustering is not pyannote; applause or laughter can mint extra
-  "speakers" (the Hindi workshop found 6).
+  "speakers" (crowd noise on a noisier recording would).
 - Whisper's built-in translation is good, not literary MT.
 - The 1.35× cap plus truncation can clip a rushed last word.
 - Edge TTS needs internet; there is no offline voice.

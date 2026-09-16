@@ -72,7 +72,7 @@ tests/             real integrations (19 s YouTube video, tiny whisper model,
 ## Evaluation dubs (Hindi → English)
 
 - ~30 min: CEC UGC Hindi Diwas lecture, `work/eval_30m/` (`H_BFx1XRZ-c`)
-- ~2 hr: NPTEL Awareness Workshop 2020, `work/eval_2h/` (`PPTmQpPL5eQ`)
+- ~2 hr: NPTEL Regional Language Workshop (Hindi), `work/eval_2h/` (`9Bro0xraJvg`)
 
 Each folder keeps `source.mp4`, `dubbed.mp4`, and `timing.json`.
 See `WALKTHROUGH.md` for the 2-minute video script and `ARCHITECTURE.md`
@@ -85,7 +85,7 @@ uv run pytest                 # full suite, ~35 s, needs internet
 uv run pytest -m "not e2e"    # offline subset (ffmpeg + logic only)
 ```
 
-35 tests, none faked. The `e2e`-marked tests run the real thing once per
+38 tests, none faked. The `e2e`-marked tests run the real thing once per
 session against "Me at the zoo" (19 s, stable since 2005): real yt-dlp
 download, real faster-whisper `tiny` transcription, real edge-tts voices,
 and a full `run_pipeline` dub asserting the output keeps the source video

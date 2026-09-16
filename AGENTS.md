@@ -9,7 +9,7 @@ Pipeline CLI (`dub-video`): YouTube → English-dubbed MP4. Spec is `automated-v
 - Layout: `src/video_dubber/` (`cli download transcribe synthesize audio remix models voice`), `tests/` (one file per stage).
 
 ## Commands
-- `uv run dub-video "<url>"` — end-to-end; `uv run pytest` — full suite (35 tests, ~40 s, needs internet; run after every stage change).
+- `uv run dub-video "<url>"` — end-to-end; `uv run pytest` — full suite (38 tests, ~40 s, needs internet; run after every stage change).
 - `uv run pytest -m "not e2e"` for the offline subset (ffmpeg + logic only).
 - `uv sync` after touching deps. `uv run pytest tests/test_<stage>.py` for a focused check.
 

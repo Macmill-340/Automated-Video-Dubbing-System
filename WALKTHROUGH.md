@@ -5,7 +5,7 @@ Record your screen with the repo open; talk through this. Aim for ~120 seconds.
 ## 0:00–0:20 — The dubs
 - Play 10 s of the Hindi lecture source, then 10 s of our English-dubbed output.
 - State the scoreboard: 30-min Hindi lecture dubbed in ~8 min
-  (see `work/eval_30m/timing.json`), 2-hour Hindi workshop in ~30 min
+  (see `work/eval_30m/timing.json`), 2-hour Hindi workshop in ~24 min
   (`work/eval_2h/timing.json`). Same video, English voice.
 
 ## 0:20–0:50 — Pipeline (show README diagram)
@@ -27,6 +27,7 @@ Record your screen with the repo open; talk through this. Aim for ~120 seconds.
   so a 2-hour run survives interruptions.
 
 ## 1:50–2:00 — Close
-- 35 real tests, no mocks on the stages; `uv run pytest`.
-- Honest limits: pitch clustering found 6 "speakers" on the NPTEL workshop (crowd noise counts);
+- 38 real tests, no mocks on the stages; `uv run pytest`.
+- Honest limits: pitch clustering is a heuristic — 1–2 speakers on these
+  single-speaker lectures, but crowd noise can mint extras;
   overlapping speech is serialized. Depth lives in `ARCHITECTURE.md`.
