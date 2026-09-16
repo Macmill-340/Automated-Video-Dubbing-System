@@ -49,8 +49,16 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _say(msg: str) -> None:
+    """Print to the terminal, replacing characters the console can't encode."""
+    try:
+        print(msg, flush=True)
+    except UnicodeEncodeError:
+        print(msg.encode("ascii", "replace").decode("ascii"), flush=True)
+
+
 def _progress(stage: str):
-    return lambda msg: print(f"[{stage}] {msg}", flush=True)
+    return lambda msg: _say(f"[{stage}] {msg}")
 
 
 def _timed(timings: dict, label: str, func, *args, **kwargs):
@@ -92,6 +100,14 @@ def run_pipeline(
     workdir = Path(workdir)
     workdir.mkdir(parents=True, exist_ok=True)
 
+    timing_file = workdir / "timing.json"
+    prior: dict = {}
+    if resume and timing_file.is_file():
+        try:
+            prior = json.loads(timing_file.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            prior = {}
+
     video_path, audio_path = workdir / "source.mp4", workdir / "source.wav"
     if resume and video_path.is_file() and audio_path.is_file():
         title = url
@@ -105,7 +121,7 @@ def run_pipeline(
         downloaded = _timed(timings, "download", download, url, workdir, _progress("download"), format)
         (workdir / "meta.json").write_text(
             json.dumps({"title": downloaded.title, "url": url}), encoding="utf-8")
-    print(f"[download] title: {downloaded.title}", flush=True)
+    _say(f"[download] title: {downloaded.title}")
 
     seg_file = workdir / "segments.json"
     if resume and seg_file.is_file():
@@ -113,7 +129,7 @@ def run_pipeline(
         print(f"[transcribe] reusing {len(segments)} saved segments (resume)", flush=True)
         timings["transcribe"] = 0.0
         timings["voice-match"] = 0.0
-        language = "resumed"
+        language = str(prior.get("language", "resumed"))
     else:
         segments, language = _timed(
             timings, "transcribe", transcribe, downloaded.audio_path,
@@ -157,13 +173,18 @@ def run_pipeline(
     final = _timed(timings, "remix", remix, downloaded.video_path, dub_wav, out)
 
     elapsed = time.perf_counter() - started_total
-    timing_file = workdir / "timing.json"
+    prior_stages = prior.get("stages", {})
+    stages = {
+        key: round(prior_stages.get(key, 0.0) + timings.get(key, 0.0), 1)
+        for key in set(prior_stages) | set(timings)
+    }
     timing_file.write_text(json.dumps({
         "title": downloaded.title,
         "language": language,
         "segments": len(segments),
-        "stages": timings,
-        "total_seconds": round(elapsed, 1),
+        "stages": stages,
+        "total_seconds": round(float(prior.get("total_seconds", 0.0)) + elapsed, 1),
+        "runs": int(prior.get("runs", 0)) + 1,
     }, indent=1), encoding="utf-8")
     print(f"[timing] wrote {timing_file}", flush=True)
     return PipelineResult(final_video=Path(final), language=language,
@@ -186,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as exc:  # fail loud but cleanly, with a usable message
         print(f"error: {exc}", file=sys.stderr)
         return 1
-    print(f"dubbed video: {result.final_video} "
+    _say(f"dubbed video: {result.final_video} "
           f"({result.segments} segments, source lang {result.language}, "
-          f"{result.elapsed:.1f}s total)", flush=True)
+          f"{result.elapsed:.1f}s total)")
     return 0

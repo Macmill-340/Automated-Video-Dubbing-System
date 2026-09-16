@@ -9,7 +9,7 @@ import subprocess
 import pytest
 
 from video_dubber import cli as cli_mod
-from video_dubber.cli import main, run_pipeline
+from video_dubber.cli import _say, main, run_pipeline
 from video_dubber.models import Segment
 from conftest import ZOO_URL, make_wav, media_streams
 
@@ -52,6 +52,19 @@ def test_main_failure_returns_1(monkeypatch, tmp_path, capsys):
     assert "boom" in capsys.readouterr().err
 
 
+def test_say_falls_back_to_ascii(monkeypatch, capsys):
+    real_print = print
+
+    def flaky(*args, **kwargs):
+        if any("हिंदी" in str(a) for a in args):
+            raise UnicodeEncodeError("ascii", "x", 0, 1, "x")
+        return real_print(*args, **kwargs)
+
+    monkeypatch.setattr("builtins.print", flaky)
+    _say("title: हिंदी lecture")
+    assert "title:" in capsys.readouterr().out
+
+
 @needs_ffmpeg
 def test_resume_skips_finished_stages(tmp_path):
     """A workdir with source + segments + one TTS clip finishes with no network."""
@@ -84,3 +97,10 @@ def test_resume_skips_finished_stages(tmp_path):
     assert timing["stages"]["download"] == 0.0
     assert timing["stages"]["transcribe"] == 0.0
     assert timing["total_seconds"] > 0
+    assert timing["runs"] == 1
+
+    again = run_pipeline("https://youtu.be/unused", work, tmp_path / "dubbed.mp4", resume=True)
+    merged = json.loads((work / "timing.json").read_text())
+    assert merged["runs"] == 2
+    assert merged["total_seconds"] >= timing["total_seconds"]
+    assert again.final_video.is_file()

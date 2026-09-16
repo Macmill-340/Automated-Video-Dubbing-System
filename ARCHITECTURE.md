@@ -40,7 +40,7 @@ and `timing.json`. One module per stage, one test file per stage.
 `yt-dlp` with `bv*+ba/b` merged to MP4: best video plus best audio. ffmpeg
 then peels a **16 kHz mono PCM WAV** — Whisper's native rate, so nothing is
 wasted on stereo or 48 kHz. For videos over ~30 minutes use
-`--format 'bv*[height<=720]+ba/b'`: the CS50 lecture at best quality was
+`--format 'bv*[height<=720]+ba/b'`: a 2-hour lecture at best quality was
 ~18 GB and YouTube throttled it mid-download (HTTP 503).
 
 ## Transcribe + translate
@@ -71,7 +71,9 @@ Cloning would mean torch and a voice model per speaker.
 ## Synthesize
 
 Edge's free online neural TTS, up to 4 requests in flight, one MP3 per
-segment. Blank text is skipped. With resume on, existing MP3s are kept.
+segment. Blank text is skipped. Transient service errors retry with backoff;
+a clip that still fails is skipped instead of killing a multi-hour run.
+With resume on, existing MP3s are kept.
 
 ## Fit + assemble
 
@@ -103,8 +105,8 @@ Measured on this machine (CPU, `small` model, batched):
 
 | Video | Dub time | Segments | Speakers |
 |---|---|---|---|
-| MIT 6.0001 Lecture 1 (43 min) | ~13 min | 90 | 2 |
-| CS50 2024 Lecture 0 (2 h 05) | ~41 min | 295 | 6 |
+| CEC Hindi Diwas lecture (30 min, Hindi) | ~8 min | 68 | 2 |
+| NPTEL workshop 2020 (1 h 56, Hindi) | ~30 min over 2 runs | 265 | 6 |
 
 Artifacts live in `work/eval_30m/` and `work/eval_2h/`: `source.mp4`,
 `dubbed.mp4`, `timing.json`.
@@ -120,7 +122,7 @@ Offline subset: `uv run pytest -m "not e2e"`. The long videos are not in CI.
 ## Honest limits
 
 - Pitch clustering is not pyannote; applause or laughter can mint extra
-  "speakers" (CS50 found 6).
+  "speakers" (the Hindi workshop found 6).
 - Whisper's built-in translation is good, not literary MT.
 - The 1.35× cap plus truncation can clip a rushed last word.
 - Edge TTS needs internet; there is no offline voice.

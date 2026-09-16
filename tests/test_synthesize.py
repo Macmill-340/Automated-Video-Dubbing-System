@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import pytest
 
+from pathlib import Path
+
 from video_dubber.models import Segment
 from video_dubber.synthesize import DEFAULT_VOICE, synthesize
 from video_dubber.audio import probe_duration
 from video_dubber import synthesize as synth_mod
 
-pytestmark = pytest.mark.e2e
 
-
+@pytest.mark.e2e
 def test_real_synthesize_clips_in_order(tmp_path):
     segments = [
         Segment(0.0, 3.0, "Hello world, this is a dubbing test."),
@@ -30,6 +31,7 @@ def test_real_synthesize_clips_in_order(tmp_path):
     assert seen, "expected progress callbacks"
 
 
+@pytest.mark.e2e
 def test_default_voice_is_explicit(tmp_path):
     assert DEFAULT_VOICE == "en-US-AriaNeural"
     clips = synthesize([Segment(0.0, 2.0, "Hi")], tmp_path)
@@ -57,3 +59,47 @@ def test_skip_existing_never_hits_network(tmp_path, monkeypatch):
     clips = synthesize([Segment(0.0, 1.0, "Hello")], tmp_path, skip_existing=True)
     assert clips == [target]
     assert target.read_bytes() == b"marker"
+
+
+def test_transient_failures_retry_then_skip(tmp_path, monkeypatch):
+    import asyncio
+
+    import edge_tts
+
+    attempts = {"n": 0}
+
+    class Flaky:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def save(self, path):
+            attempts["n"] += 1
+            if attempts["n"] < 3:
+                raise RuntimeError("No audio was received")
+            Path(path).write_bytes(b"recovered")
+
+    monkeypatch.setattr(edge_tts, "Communicate", Flaky)
+    real_sleep = asyncio.sleep
+    monkeypatch.setattr(synth_mod.asyncio, "sleep", lambda s: real_sleep(0))
+    clips = synthesize([Segment(0.0, 1.0, "Hello")], tmp_path)
+    assert attempts["n"] == 3
+    assert clips[0] is not None and clips[0].read_bytes() == b"recovered"
+
+
+def test_persistent_failure_skips_clip(tmp_path, monkeypatch):
+    import asyncio
+
+    import edge_tts
+
+    class Dead:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def save(self, path):
+            raise RuntimeError("No audio was received")
+
+    monkeypatch.setattr(edge_tts, "Communicate", Dead)
+    real_sleep = asyncio.sleep
+    monkeypatch.setattr(synth_mod.asyncio, "sleep", lambda s: real_sleep(0))
+    clips = synthesize([Segment(0.0, 1.0, "Hello")], tmp_path)
+    assert clips == [None]

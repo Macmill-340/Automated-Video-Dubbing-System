@@ -3,9 +3,9 @@
 Record your screen with the repo open; talk through this. Aim for ~120 seconds.
 
 ## 0:00–0:20 — The dubs
-- Play 10 s of the MIT lecture source, then 10 s of our dubbed output.
-- State the scoreboard: 43-min video dubbed in ~13 min
-  (see `work/eval_30m/timing.json`), 2-hour CS50 in ~41 min
+- Play 10 s of the Hindi lecture source, then 10 s of our English-dubbed output.
+- State the scoreboard: 30-min Hindi lecture dubbed in ~8 min
+  (see `work/eval_30m/timing.json`), 2-hour Hindi workshop in ~30 min
   (`work/eval_2h/timing.json`). Same video, English voice.
 
 ## 0:20–0:50 — Pipeline (show README diagram)
@@ -28,5 +28,5 @@ Record your screen with the repo open; talk through this. Aim for ~120 seconds.
 
 ## 1:50–2:00 — Close
 - 35 real tests, no mocks on the stages; `uv run pytest`.
-- Honest limits: pitch clustering found 6 "speakers" on CS50 (applause counts);
+- Honest limits: pitch clustering found 6 "speakers" on the NPTEL workshop (crowd noise counts);
   overlapping speech is serialized. Depth lives in `ARCHITECTURE.md`.

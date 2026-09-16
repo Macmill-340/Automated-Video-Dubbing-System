@@ -20,8 +20,17 @@ ProgressFn = Callable[[str], None]
 DEFAULT_VOICE = "en-US-AriaNeural"
 
 
-async def _synthesize_one(text: str, voice: str, rate: str, volume: str, pitch: str, out_path: Path) -> None:
-    await edge_tts.Communicate(text, voice, rate=rate, volume=volume, pitch=pitch).save(str(out_path))
+async def _synthesize_one(text: str, voice: str, rate: str, volume: str, pitch: str, out_path: Path) -> bool:
+    """Synthesize one clip, retrying transient edge-tts failures; False means skip it."""
+    for attempt in range(4):
+        try:
+            await edge_tts.Communicate(text, voice, rate=rate, volume=volume, pitch=pitch).save(str(out_path))
+            return True
+        except Exception:  # network hiccups / rate limits: back off, then give up on this clip
+            if attempt == 3:
+                return False
+            await asyncio.sleep(2 * (attempt + 1))
+    return False
 
 
 async def _synthesize_all(
@@ -44,7 +53,7 @@ async def _synthesize_all(
                 results[index] = path
                 return
             notify(f"synthesizing {index + 1}/{len(jobs)}")
-            await _synthesize_one(
+            ok = await _synthesize_one(
                 segment.text,
                 segment.voice or voice,
                 segment.rate or rate,
@@ -52,7 +61,10 @@ async def _synthesize_all(
                 segment.pitch or "+0Hz",
                 path,
             )
-            results[index] = path
+            if ok:
+                results[index] = path
+            else:
+                notify(f"segment {index + 1} failed after retries, skipping")
 
     await asyncio.gather(*(worker(i, seg, path) for i, (seg, path) in enumerate(jobs)))
     return results

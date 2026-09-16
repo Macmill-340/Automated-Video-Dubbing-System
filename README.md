@@ -69,10 +69,10 @@ tests/             real integrations (19 s YouTube video, tiny whisper model,
                    live edge-tts) + local ffmpeg checks + CLI wiring
 ```
 
-## Evaluation dubs
+## Evaluation dubs (Hindi → English)
 
-- ~40 min: MIT 6.0001 Lecture 1, `work/eval_30m/` (`nykOeWgQcHM`, female lecturer)
-- ~2 hr: CS50 2024 Lecture 0, `work/eval_2h/` (`3LPJfIKxwWc`, male lecturer)
+- ~30 min: CEC UGC Hindi Diwas lecture, `work/eval_30m/` (`H_BFx1XRZ-c`)
+- ~2 hr: NPTEL Awareness Workshop 2020, `work/eval_2h/` (`PPTmQpPL5eQ`)
 
 Each folder keeps `source.mp4`, `dubbed.mp4`, and `timing.json`.
 See `WALKTHROUGH.md` for the 2-minute video script and `ARCHITECTURE.md`
